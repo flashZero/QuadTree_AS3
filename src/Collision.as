@@ -1,6 +1,7 @@
-package
+package utils
 {
 	import flash.geom.Rectangle;
+	import quadTree.Node;
 
 	public class Collision
 	{
@@ -10,9 +11,11 @@ package
 		
 		public static function hitTestByPoint(x1:Number,y1:Number,width1:Number,height1:Number,x2:Number,y2:Number,width2:Number,height2:Number):Boolean
 		{
-			if(Math.abs(x1+width1*.5-(x2+width2*.5))<(width1+width2)*.5
+			//x1-x2+(width1-width2)*.5
+			//y1-y2+(height1-height2)*.5
+			if(Math.abs(x1-x2+(width1-width2)*.5)<(width1+width2)*.5
 				&&
-				Math.abs(y1+height1*.5-(y2+height2*.5))<(height1+height2)*.5
+				Math.abs(y1-y2+(height1-height2)*.5)<(height1+height2)*.5
 			)
 				return true;
 			return false;
