@@ -1,4 +1,4 @@
-﻿package  {
+package quadTree  {
 	import flash.display.DisplayObject;
 	import flash.display.Shape;
 	import flash.geom.Rectangle;
@@ -118,6 +118,15 @@
 			this.speed = minSpeed + (Math.random() * (this.$maxSpeed - this.$minSpeed) >> 0);
 		}
 		
+		
+		public function remove():void
+		{
+			if(this.selfQT)
+			{
+				this.selfQT.node.splice(this.selfQT.node.indexOf(this),1);
+			}
+			clear();
+		}
 	}
 	
 }
