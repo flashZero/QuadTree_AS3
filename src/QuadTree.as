@@ -1,16 +1,18 @@
-package 
+package quadTree 
 {
 	import flash.geom.Rectangle;
+	import utils.Collision;
 	
-	import avmplus.FLASH10_FLAGS;
 
 	public class QuadTree
 	{
+		protected var _hasChild:Boolean;
+		
 		protected var NW:QuadTree;
 		protected var NE:QuadTree;
 		protected var SW:QuadTree;
 		protected var SE:QuadTree;
-
+		
 		/**
 		 *深度 
 		 */
@@ -84,12 +86,13 @@ package
 		{
 			this.maxdepth=depth;
 			this.depth = depth;
-			this.node = new Vector.<Node >();
+			this.node = new Vector.<Node>();
 			this.bounds = bounds;
-			if (NW||NE||SW||SE||depth<=0)
+			if (depth<=0)
 			{
 				return;
 			}
+			_hasChild=true;
 			var halfW:Number=bounds.width*.5;
 			var halfH:Number=bounds.height*.5;
 			//右上
@@ -137,25 +140,25 @@ package
 
 			switch(index)
 			{
-			case QuadTree.RECT_NE:
-				NE.insert(n);
-				break;
-			case QuadTree.RECT_NW:
-				NW.insert(n);
-				break;
-			case QuadTree.RECT_SE:
-				SE.insert(n);
-				break;
-			case QuadTree.RECT_SW:
-				SW.insert(n);
-				break;
-			case QuadTree.RECT_SELF:
-				n.selfQT=this;
-				//this.node.push(n);
-					this.node[node.length]=n;
-				break;
-			default:
-				break;
+				case QuadTree.RECT_NE:
+					NE.insert(n);
+					break;
+				case QuadTree.RECT_NW:
+					NW.insert(n);
+					break;
+				case QuadTree.RECT_SE:
+					SE.insert(n);
+					break;
+				case QuadTree.RECT_SW:
+					SW.insert(n);
+					break;
+				case QuadTree.RECT_SELF:
+					n.selfQT=this;
+					//this.node.push(n);
+						this.node[node.length]=n;
+					break;
+				default:
+					break;
 			}
 		}
 
@@ -166,7 +169,7 @@ package
 			while(qtp){
 				for each(var n:Node in qtp.node)
 				{
-					v.push(n);
+					v[v.length]=n;
 				}
 				qtp=qtp.parent;
 			}
@@ -176,7 +179,7 @@ package
 		public function retriveFunc2(node:Node,v:Vector.<Node>):void
 		{
 			if(node.selfQT)
-			this.retrive(node,v,node.selfQT);
+				this.retrive(node,v,node.selfQT);
 		}
 		
 		private function retrive(node:Node,v:Vector.<Node>,qt:QuadTree=null):void
@@ -191,7 +194,7 @@ package
 						v[v.length]=n;
 					}
 				}
-				n=null;
+//				n=null;
 				if(qt.hasChild())
 				{
 					retrive(node,v,qt.NE);
@@ -218,7 +221,7 @@ package
 				this.SE.clear();
 				this.SW.clear();
 			}
-			this.node=new Vector.<Node>();
+			this.node.length=0
 		}
 		
 		
@@ -244,12 +247,14 @@ package
 		public function getIndex(node:Node):int
 		{
 			var index:int = QuadTree.RECT_SELF;
-			
-			var xMidPoint:Number = bounds.x + bounds.width/2;
-			var yMidPoint:Number = bounds.y + bounds.height/2;
+			if(!_hasChild)
+				return index;
+			var xMidPoint:Number = bounds.x + bounds.width*.5;
+			var yMidPoint:Number = bounds.y + bounds.height*.5;
 			
 			var topQuadrant:Boolean = node.y < yMidPoint && node.y + node.height < yMidPoint;//Quadrant 象限
 			var bottomQuadrant:Boolean = node.y > yMidPoint;
+			if(!hasChild())return QuadTree.RECT_SELF;
 			if(node.x < xMidPoint && node.x + node.width <xMidPoint)
 			{
 				if(topQuadrant)index = QuadTree.RECT_NW;
@@ -260,7 +265,7 @@ package
 				if(topQuadrant)index = QuadTree.RECT_NE;
 				else if(bottomQuadrant) index = QuadTree.RECT_SE;
 			}
-			if(!hasChild())return QuadTree.RECT_SELF;
+			
 			return index;
 		}
 		
@@ -271,7 +276,8 @@ package
 		 */
 		protected function hasChild():Boolean
 		{
-			return NW||NE||SW||SE;
+//			return NW||NE||SW||SE;
+			return _hasChild;
 		}
 		
 	}
