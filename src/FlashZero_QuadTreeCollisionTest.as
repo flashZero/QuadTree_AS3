@@ -10,11 +10,16 @@ package
 	import flash.text.TextField;
 	import flash.text.TextFormat;
 	import flash.ui.Keyboard;
-	[SWF(frameRate="60",width="1440",height="900")]
+	import quadTree.Node;
+	import quadTree.QuadTree;
+	import utils.Collision;
+	import utils.FPSCounter;
+
+	[SWF(frameRate="60",width="1440",height="900",backgroundColor="0x00ff00")]
 	public class FlashZero_QuadTreeCollisionTest extends Sprite
 	{
 		private var fps:FPSCounter;
-		private var qt:QuadTree;
+		protected var qt:QuadTree;
 		protected var _nodeArr:Vector.<Node>=new Vector.<Node>();
 		protected var _nodeNum:int;
 		private var _flashZeroLogo:TextField;
@@ -26,7 +31,6 @@ package
 		protected var _maxDepth:int;
 		protected var stageWidth:Number;
 		protected var stageHeight:Number;
-		
 		public function FlashZero_QuadTreeCollisionTest()
 		{
 			// constructor code
@@ -75,30 +79,21 @@ package
 			}
 		}
 		
-		private function addNode():void
+		protected function addNode():void
 		{
 			for(var i:int=0;i<50;i++)
 			{
-				var nWidth:Number=randomNumberByRange(10,30)>>0;
-				var nHeight:Number=randomNumberByRange(10,30)>>0;
-				var nx:Number=randomNumberByRange(0,this.stageWidth-nWidth)>>0;
-				var ny:Number=randomNumberByRange(0,this.stageHeight-nHeight)>>0;
-				
-				var n:Node=createNewNode(nWidth,nHeight,nx,ny,7,15);
-				//qt.insert(n);
-				_nodeArr.push(n);
+				createSingleNode();
 			}
 			_nodeNum+=50;
 		}
-		private function reduceNode():void
+		protected function reduceNode():void
 		{
 			if(_nodeNum<=0)return;
 			for(var i:int=0;i<50;i++)
 			{
 				var n:Node=_nodeArr.pop();
-				var sq:QuadTree=n.selfQT;
-				sq.node.splice(sq.node.indexOf(n),1);
-				n.clear();
+				n.remove();
 			}
 			_nodeNum-=50;
 		}
@@ -110,7 +105,7 @@ package
 			var sh:Number = this.stageHeight;
 			stageRect= new Rectangle(0,0,sw,sh);
 		}
-		private function init():void
+		protected function init():void
 		{
 			//qt=new ActiveQuadTree(new Rectangle(0,0,this.stageWidth,this.stageHeight));
 		 	qt=new QuadTree();
@@ -118,22 +113,22 @@ package
 			
 			 for(var i:int=0;i<_nodeNum;i++)
 			{
-				 var nWidth:Number=randomNumberByRange(10,30)>>0;
-				 var nHeight:Number=randomNumberByRange(10,30)>>0;
-				 var nx:Number=randomNumberByRange(0,this.stageWidth-nWidth)>>0;
-				 var ny:Number=randomNumberByRange(0,this.stageHeight-nHeight)>>0;
-				 var n:Node=createNewNode(nWidth,nHeight,nx,ny,7,15);
-				qt.insert(n);
-				_nodeArr.push(n);
+				 createSingleNode();
 			}
-			var nn:Node= createNewNode(1000,500,200,50,7,15);
-			qt.insert(nn);
-			_nodeArr.push(nn);
 			this.mouseChildren=this.mouseEnabled=false;
 			
 		}
-		
-		private function createNewNode(width:Number,height:Number,x:Number,y:Number,minSpeed:Number,maxSpeed:Number):Node
+		protected function createSingleNode():void
+		{
+			var nWidth:Number=randomNumberByRange(10,30)>>0;
+			var nHeight:Number=randomNumberByRange(10,30)>>0;
+			var nx:Number=randomNumberByRange(0,this.stageWidth-nWidth)>>0;
+			var ny:Number=randomNumberByRange(0,this.stageHeight-nHeight)>>0;
+			var n:Node=createNewNode(nWidth,nHeight,nx,ny,7,15);
+			qt.insert(n);
+			_nodeArr[_nodeArr.length]=n;
+		}
+		protected function createNewNode(width:Number,height:Number,x:Number,y:Number,minSpeed:Number,maxSpeed:Number):Node
 		{
 
 			var n:Node=new Node();
@@ -157,7 +152,7 @@ package
 				break;
 				case Event.MOUSE_LEAVE:
 					stage.addEventListener(MouseEvent.MOUSE_MOVE,onMouseMoveFunc);
-					stage.addEventListener(Event.MOUSE_LEAVE,onMouseLeaveFunc);
+					stage.addEventListener(Event.MOUSE_LEAVE,onMouseLeaveFunc,false,1);
 					break;
 				default:
 
@@ -177,6 +172,7 @@ package
 		{
 			stage.addEventListener(MouseEvent.MOUSE_MOVE,onMouseMoveFunc);
 			stage.removeEventListener(Event.ENTER_FRAME,randerFunc);
+//			evt.stopImmediatePropagation();
 		}
 		protected function buildUI():void
 		{
@@ -244,7 +240,7 @@ package
 		}
 		
 		
-		private function reInsert():void
+		protected function reInsert():void
 		{
 			qt.clear();
 			var n:Node;
@@ -257,66 +253,85 @@ package
 		}
 		
 		private var stageRect:Rectangle;
-		private function dataUpdate():void
+		protected function dataUpdate():void
 		{
 			
-
-			for each (var n:Node in _nodeArr)
+			var n:Node
+			for each (n in _nodeArr)
 			{
+
+				handler(n);
+			}
+		}
+		
+		protected function handler(n:Node):void
+		{
+			
+			n.x += n.x_speed;
+			n.y += n.y_speed;
+			
+			if (n.x + n.width >= stageRect.left + stageRect.width || n.x <= stageRect.left)
+			{
+				n.x_direction *= -1;
+				n.speed = n.minSpeed + (Math.random() * (n.maxSpeed - n.minSpeed) >> 0);
 				
-				n.x += n.x_speed;
-				n.y += n.y_speed;
-				
-				if (n.x + n.width >= stageRect.left + stageRect.width || n.x <= stageRect.left)
+				if (n.x <= stageRect.left) 
 				{
-					n.x_direction *= -1;
-					n.speed = n.minSpeed + (Math.random() * (n.maxSpeed - n.minSpeed) >> 0);
-					
-					if (n.x <= stageRect.left) n.x = stageRect.left;
-					var tx:Number = n.x + n.width;
-					var xb:Number = stageRect.left + stageRect.width;
-					if ( tx >= xb) n.x = xb - n.width;
-					
+					n.x = stageRect.left;
+				}
+					//					var tx:Number = n.x + n.width;
+					//					var xb:Number = stageRect.left + stageRect.width;
+					//					if ( n.x + n.width >= stageRect.left + stageRect.width) n.x = xb - n.width;
+				else if(n.x>=stageRect.right - n.width)
+				{
+					n.x = stageRect.right - n.width;
 				}
 				
-				if (n.y + n.height >= stageRect.top + stageRect.height || n.y <= stageRect.top)
-				{
-					
-					n.y_direction *= -1;
-					n.speed = n.minSpeed + (Math.random() * (n.maxSpeed - n.minSpeed) >> 0);
-					if (n.y <= stageRect.top) n.y = stageRect.top;
-					var ty:Number = n.y + n.height;
-					var yb:Number = stageRect.top + stageRect.height;
-					if (ty >= yb) n.y = yb - n.height;
+			}
+			
+			if (n.y + n.height >= stageRect.top + stageRect.height || n.y <= stageRect.top)
+			{
+				
+				n.y_direction *= -1;
+				n.speed = n.minSpeed + (Math.random() * (n.maxSpeed - n.minSpeed) >> 0);
+				if (n.y <= stageRect.top) n.y = stageRect.top;
+					//					var ty:Number = n.y + n.height;
+					//					var yb:Number = stageRect.top + stageRect.height;
+					//					if (ty >= yb) n.y = yb - n.height;
+				else if(n.y>=stageRect.bottom-n.height)n.y=stageRect.bottom-n.height;
+			}
+		}
+		protected var tempV:Vector.<Node>=new Vector.<Node>();
+		
+		protected function collisionTest():void
+		{
+			//========================
+			tempV.length=0;
+			for each(var n:Node in this._nodeArr)
+			{	
+				collisionNode(n);
+				tempV.length=0;
+			}
+//			v=null;
+		}
+		
+		protected function collisionNode(n:Node):void
+		{
+			qt.retriveFunc2(n,tempV);
+			for each(var n2:Node in tempV)
+			{
+				
+				if(n==n2)continue;
+				collisedNum++;
+				if(Collision.hitTestByPoint(n.x,n.y,n.width,n.height,n2.x,n2.y,n2.width,n2.height))
+				{	
+					n.isCollised=n2.isCollised=true;
+					//break;
 				}
 				
 			}
 		}
 		
-		private function collisionTest():void
-		{
-			//========================
-			var v:Vector.<Node>=new Vector.<Node>();
-			for each(var n1:Node in this._nodeArr)
-			{
-				//var v:Vector.<Node>=qt.retriveFunc(n1);
-				v=new Vector.<Node>();
-				qt.retriveFunc2(n1,v);
-				for each(var n2:Node in v)
-				{
-					
-					if(n1==n2)continue;
-					collisedNum++;
-					if(Collision.hitTestByPoint(n1.x,n1.y,n1.width,n1.height,n2.x,n2.y,n2.width,n2.height))
-					{	
-						n1.isCollised=n2.isCollised=true;
-						//break;
-					}
-					
-				}
-			}
-			v=null;
-		}
 		private function displayCollisedResult():void
 		{
 			_collisedText.text="number of object:"+_nodeNum+"\ncollised times:"+String(collisedNum)+"\nmaxCollised times:"+String(this.maxCollisedNum=this.maxCollisedNum>collisedNum?maxCollisedNum:collisedNum);
@@ -336,7 +351,7 @@ package
 						this.graphics.beginFill(0x0000FF,1)
 					this.graphics.drawRect(node.x,node.y,node.width,node.height);
 			}
-			this.graphics.endFill();
+//			this.graphics.endFill();
 		}
 		public function randomNumberByRange(v1:Number=0,v2:Number=1):Number
 		{
